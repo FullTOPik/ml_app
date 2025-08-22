@@ -60,6 +60,8 @@ x-airflow-common:
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
+    TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
@@ -79,6 +81,8 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ./data:/opt/airflow/data
+    - ./.env:/opt/airflow/.env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -163,6 +167,9 @@ services:
       start_period: 30s
     environment:
       <<: *airflow-common-env
+      TELEGRAM_CONN_ID=${TELEGRAM_CONN_ID}
+      TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
@@ -286,5 +293,24 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  postgres_fot_experiments:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: data
+    volumes:
+      - postgres-db-volume2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    ports:
+      - "5433:5432"
+    restart: always
+  
+
 volumes:
   postgres-db-volume:
+  postgres-db-volume2:

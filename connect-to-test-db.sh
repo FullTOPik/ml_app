@@ -1,0 +1,1 @@
+docker exec -it others-postgres_fot_experiments-1 psql -U data -W data
